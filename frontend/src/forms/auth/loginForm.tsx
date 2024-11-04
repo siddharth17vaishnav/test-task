@@ -9,7 +9,7 @@ import { setUser } from "@/store/users/user.slice";
 import { useLoginMutation } from "@/store/users/users.api";
 import { addCookie } from "@/utils/cookies";
 import { useRouter } from "next/router";
-import React, { useState } from "react";
+import { useState } from "react";
 
 const LoginForm = () => {
   const { toast } = useToast();
@@ -27,7 +27,6 @@ const LoginForm = () => {
         toast({ title: err.data.message });
       } else if (data) {
         addCookie("accessToken", data.accessToken);
-        addCookie("refreshToken", data.refreshToken);
         dispatch(setUser(data.user));
         router.push("/");
       }

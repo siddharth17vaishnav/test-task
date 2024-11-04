@@ -13,7 +13,12 @@ export const addUserValidate = checkSchema({
       bail: true,
     },
   },
-  name: {
+  first_name: {
+    isString: {
+      errorMessage: "Invalid name",
+    },
+  },
+  last_name: {
     isString: {
       errorMessage: "Invalid name",
     },

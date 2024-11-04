@@ -1,27 +1,27 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import React from "react";
-import { useFormik } from "formik";
-import * as Yup from "yup";
-import { useSignupMutation } from "@/store/users/users.api";
-import { omit } from "lodash";
-import { ErrorResponse } from "@/store/root-reducer.type";
-import { useAppDispatch } from "@/store";
-import { addCookie } from "@/utils/cookies";
-import { setUser } from "@/store/users/user.slice";
 import { useToast } from "@/hooks/use-toast";
+import { useAppDispatch } from "@/store";
+import { ErrorResponse } from "@/store/root-reducer.type";
+import { setUser } from "@/store/users/user.slice";
+import { useSignupMutation } from "@/store/users/users.api";
+import { addCookie } from "@/utils/cookies";
+import { useFormik } from "formik";
 import { useRouter } from "next/router";
+import * as Yup from "yup";
 
 interface SignupFormValues {
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
   confirmPassword: string;
 }
 
 const SignupSchema = Yup.object({
-  name: Yup.string().required("Name is required"),
+  firstName: Yup.string().required("First Name is required"),
+  lastName: Yup.string().required("Last Name is required"),
   email: Yup.string()
     .email("Invalid email address")
     .required("Email is required"),
@@ -50,21 +50,26 @@ const SignupForm = () => {
     isValid,
   } = useFormik<SignupFormValues>({
     initialValues: {
-      name: "",
+      firstName: "",
+      lastName: "",
       email: "",
       password: "",
       confirmPassword: "",
     },
     validationSchema: SignupSchema,
     onSubmit: (values) => {
-      signup(omit(values, ["confirmPassword"])).then((res) => {
+      signup({
+        first_name: values.firstName,
+        last_name: values.lastName,
+        email: values.email,
+        password: values.password,
+      }).then((res) => {
         const { data, error } = res;
         const err = error as ErrorResponse;
         if (err) {
           toast({ title: err.data.message });
         } else if (data) {
           addCookie("accessToken", data.accessToken);
-          addCookie("refreshToken", data.refreshToken);
           dispatch(setUser(data.user));
           router.push("/");
         }
@@ -76,18 +81,33 @@ const SignupForm = () => {
       <div className="grid w-full items-center gap-4">
         {/* Name Field */}
         <div className="flex flex-col space-y-1.5">
-          <Label htmlFor="name">Name</Label>
+          <Label htmlFor="name">First Name</Label>
           <Input
-            id="name"
-            name="name"
+            id="firstName"
+            name="firstName"
             type="text"
             required
             onChange={handleChange}
             onBlur={handleBlur}
-            value={values.name}
+            value={values.firstName}
           />
-          {touched.name && errors.name && (
-            <p className="text-sm text-red-500">{errors.name}</p>
+          {touched.firstName && errors.firstName && (
+            <p className="text-sm text-red-500">{errors.firstName}</p>
+          )}
+        </div>
+        <div className="flex flex-col space-y-1.5">
+          <Label htmlFor="name">Last Name</Label>
+          <Input
+            id="lastName"
+            name="lastName"
+            type="text"
+            required
+            onChange={handleChange}
+            onBlur={handleBlur}
+            value={values.lastName}
+          />
+          {touched.lastName && errors.lastName && (
+            <p className="text-sm text-red-500">{errors.lastName}</p>
           )}
         </div>
 

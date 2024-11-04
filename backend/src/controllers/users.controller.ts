@@ -1,13 +1,29 @@
+import bcrypt from "bcrypt";
 import * as dotenv from "dotenv";
 import express from "express";
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
 import { validationResult } from "express-validator";
-import { User } from "../models/User";
+import jwt from "jsonwebtoken";
 import { omit } from "lodash";
+import { User } from "../models/User";
 
 dotenv.config();
-let refreshTokens: string[] = [];
+
+const sendErrorResponse = (
+  res: express.Response,
+  statusCode: number,
+  message: string
+) => {
+  res.status(statusCode).send({ message });
+};
+
+const generateToken = (
+  userId: number,
+  email: string,
+  secret: string,
+  expiresIn: string
+) => {
+  return jwt.sign({ userId, email }, secret, { expiresIn });
+};
 
 export const userById = async (req: express.Request, res: express.Response) => {
   try {
@@ -30,53 +46,41 @@ export const userLogin = async (
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      res.status(400).send({ errors });
-    } else {
-      const { email, password } = req.body;
-      const findUser = await User.findOneBy({ email });
-      if (findUser && process.env.ACCESS_SECRET) {
-        const correctPassword = await bcrypt.compare(
-          password,
-          findUser.password
-        );
-        if (
-          correctPassword &&
-          process.env.ACCESS_SECRET &&
-          process.env.REFRESH_SECRET
-        ) {
-          await User.update({ id: findUser.id }, { last_login_at: new Date() });
-          const generateAccessToken = jwt.sign(
-            {
-              userId: findUser.id,
-              email: findUser.email,
-            },
-            process.env.ACCESS_SECRET,
-            { expiresIn: "7d" }
-          );
-          const generateRefreshToken = jwt.sign(
-            {
-              userId: findUser.id,
-              email: findUser.email,
-            },
-            process.env.REFRESH_SECRET,
-            { expiresIn: "30d" }
-          );
-          refreshTokens.push(generateRefreshToken);
-
-          res.status(200).send({
-            user: omit(findUser, ["password"]),
-            accessToken: generateAccessToken,
-            refreshToken: generateRefreshToken,
-          });
-        } else {
-          res.status(401).send({ message: "Invalid password!" });
-        }
-      } else {
-        res.status(404).send({ message: "User not found!" });
-      }
+      return sendErrorResponse(res, 400, "Validation failed");
     }
+
+    const { email, password } = req.body;
+    const findUser = await User.findOneBy({ email });
+
+    if (!findUser) {
+      return sendErrorResponse(res, 404, "No User found with this email!");
+    }
+
+    const correctPassword = await bcrypt.compare(password, findUser.password);
+    if (!correctPassword) {
+      return sendErrorResponse(res, 401, "Invalid password!");
+    }
+
+    await User.update({ id: findUser.id }, { last_login_at: new Date() });
+
+    if (!process.env.ACCESS_SECRET || !process.env.REFRESH_SECRET) {
+      return sendErrorResponse(res, 500, "Missing JWT secret(s)");
+    }
+
+    const accessToken = generateToken(
+      findUser.id,
+      findUser.email,
+      process.env.ACCESS_SECRET,
+      "7d"
+    );
+
+    res.status(200).send({
+      user: omit(findUser, ["password"]),
+      accessToken,
+    });
   } catch (err) {
-    res.status(500).send({ message: err.message });
+    console.error(err);
+    sendErrorResponse(res, 500, "Internal server error");
   }
 };
 
@@ -86,7 +90,7 @@ export const addUser = async (req: express.Request, res: express.Response) => {
     if (!errors.isEmpty()) {
       res.status(400).send({ errors });
     } else {
-      const { name, email, password } = req.body;
+      const { first_name, last_name, email, password } = req.body;
       const existing = await User.findOneBy({ email: email });
       if (!existing) {
         const salt = await bcrypt.genSalt(10);
@@ -94,8 +98,8 @@ export const addUser = async (req: express.Request, res: express.Response) => {
         const user = await User.createQueryBuilder()
           .insert()
           .into(User)
-          .values({ name: name, email: email, password: hashedPassword })
-          .returning("*")
+          .values({ first_name, last_name, email, password: hashedPassword })
+          .returning("first_name, last_name, email")
           .execute();
         if (process.env.ACCESS_SECRET && process.env.REFRESH_SECRET) {
           const generateAccessToken = jwt.sign(
@@ -103,16 +107,10 @@ export const addUser = async (req: express.Request, res: express.Response) => {
             process.env.ACCESS_SECRET,
             { expiresIn: "7d" }
           );
-          const generateRefreshToken = jwt.sign(
-            { userId: user.raw[0].id, email: user.raw[0].email },
-            process.env.REFRESH_SECRET,
-            { expiresIn: "30d" }
-          );
-          refreshTokens.push(generateRefreshToken);
+
           res.status(200).send({
             user: user.raw[0],
             accessToken: generateAccessToken,
-            refreshToken: generateRefreshToken,
           });
         }
       } else {
@@ -152,42 +150,9 @@ export const updatePassword = async (
   }
 };
 
-export const refreshToken = async (
-  req: express.Request,
-  res: express.Response
-) => {
-  try {
-    const { refreshToken } = req.body;
-    if (refreshToken == null)
-      res.status(400).send({
-        message: "No refresh token available to generate access token",
-      });
-    if (!refreshToken.includes(refreshToken)) {
-      res.status(401).send({ message: "Unauthenticated request" });
-    } else if (process.env.REFRESH_SECRET && process.env.ACCESS_SECRET) {
-      const validRefreshToken = jwt.verify(
-        refreshToken,
-        process.env.REFRESH_SECRET
-      ) as unknown as { userId: string; email: string };
-      const newAccessToken = jwt.sign(
-        { userId: validRefreshToken.userId, email: validRefreshToken.email },
-        process.env.ACCESS_SECRET
-      );
-      const newRefreshToken = jwt.sign(
-        { userId: validRefreshToken.userId, email: validRefreshToken.email },
-        process.env.REFRESH_SECRET
-      );
-      res.status(200).send({ newAccessToken, newRefreshToken });
-    }
-  } catch (err) {
-    res.status(500).send({ message: err.message });
-  }
-};
-
 module.exports = {
   userLogin,
   addUser,
   updatePassword,
-  refreshToken,
   userById,
 };
