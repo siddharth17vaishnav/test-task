@@ -3,7 +3,8 @@ import { User } from "./users.type";
 
 const initialState: User = {
   id: 0,
-  name: "",
+  first_name: "",
+  last_name: "",
   email: "",
   last_login_at: "",
 };

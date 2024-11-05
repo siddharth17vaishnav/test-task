@@ -1,5 +1,7 @@
+import { API } from "@/constans/api";
+import { prepareHeaders } from "@/utils/tokenManager";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { LoginResponse } from "./users.type";
+import { LoginResponse, User } from "./users.type";
 
 interface LoginPayload {
   email: string;
@@ -13,24 +15,32 @@ interface SignupPayload extends LoginPayload {
 export const usersApi = createApi({
   reducerPath: "usersApi",
   baseQuery: fetchBaseQuery({
-    baseUrl: "http://localhost:5000",
+    baseUrl: process.env.NEXT_PUBLIC_BACKEND_URL,
+    prepareHeaders,
   }),
   endpoints: (builder) => ({
     login: builder.mutation<LoginResponse, LoginPayload>({
       query: (body) => ({
-        url: `/api/user/login`,
+        url: API.LOGIN,
         method: "POST",
         body,
       }),
     }),
     signup: builder.mutation<LoginResponse, SignupPayload>({
       query: (body) => ({
-        url: `/api/user`,
+        url: API.SIGNUP,
         method: "POST",
+        body,
+      }),
+    }),
+    getUser: builder.query<{ data: User }, void>({
+      query: (body) => ({
+        url: API.ME,
         body,
       }),
     }),
   }),
 });
 
-export const { useLoginMutation, useSignupMutation } = usersApi;
+export const { useLoginMutation, useSignupMutation, useGetUserQuery } =
+  usersApi;

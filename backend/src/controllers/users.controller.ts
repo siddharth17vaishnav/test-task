@@ -150,9 +150,27 @@ export const updatePassword = async (
   }
 };
 
+export const getCurrentUser = async (
+  req: express.Request,
+  res: express.Response
+) => {
+  try {
+    const userId = req.app.get("userId");
+    const findUser = await User.findOneBy({ id: userId });
+    if (findUser) {
+      res.status(200).send({ data: omit(findUser, ["password"]) });
+    } else {
+      res.status(404).send({ message: "User not found!" });
+    }
+  } catch (err) {
+    res.status(500).send({ message: err.message });
+  }
+};
+
 module.exports = {
   userLogin,
   addUser,
   updatePassword,
   userById,
+  getCurrentUser,
 };

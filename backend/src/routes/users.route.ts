@@ -1,6 +1,7 @@
 import express from "express";
 import {
   addUser,
+  getCurrentUser,
   updatePassword,
   userById,
   userLogin,
@@ -18,5 +19,6 @@ router.post("/api/user/login", loginUserValidate, userLogin);
 router.post("/api/user", addUserValidate, addUser);
 router.put("/api/user/update-password", updatePasswordValidate, updatePassword);
 router.get("/api/user", authenticateToken, userById);
+router.get("/api/user/me", authenticateToken, getCurrentUser);
 
 export { router as userRouter };
