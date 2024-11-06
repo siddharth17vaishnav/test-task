@@ -75,6 +75,10 @@ const Navbar = () => {
                   </p>
                 </div>
               </div>
+              <Button variant="outline" onClick={() => router.push("/profile")}>
+                <LogOut className="mr-2 h-4 w-4" />
+                View Profile
+              </Button>
               <Button variant="destructive" onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />
                 Logout
