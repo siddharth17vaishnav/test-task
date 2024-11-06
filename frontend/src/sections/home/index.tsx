@@ -1,4 +1,3 @@
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -6,12 +5,38 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { RootReduxState } from "@/store/root-reducer.type";
-import { Avatar, AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
+import useEffectAfterMount from "@/hooks";
+import { useToast } from "@/hooks/use-toast";
+import {
+  useAcceptRequestMutation,
+  useGetFriendsQuery,
+  useLazySearchFriendQuery,
+  useRejectRequestMutation,
+  useSendFriendRequestMutation,
+} from "@/store/friends/friends.api";
+import { ErrorResponse, RootReduxState } from "@/store/root-reducer.type";
+import { Avatar, AvatarFallback } from "@radix-ui/react-avatar";
 import { format } from "date-fns";
-import { Bell, MessageCircle, ThumbsUp, UserPlus } from "lucide-react";
+import { debounce } from "lodash";
+import {
+  Bell,
+  Check,
+  X,
+  MessageCircle,
+  Plus,
+  ThumbsUp,
+  UserPlus,
+} from "lucide-react";
+import { useCallback, useState } from "react";
 import { useSelector } from "react-redux";
 
 const activities = [
@@ -52,16 +77,16 @@ const activities = [
   },
 ];
 
-const friends = [
-  { id: 1, name: "Alice Johnson", avatar: "/placeholder.svg" },
-  { id: 2, name: "Bob Smith", avatar: "/placeholder.svg" },
-  { id: 3, name: "Charlie Brown", avatar: "/placeholder.svg" },
-  { id: 4, name: "David Lee", avatar: "/placeholder.svg" },
-  { id: 5, name: "Eve Taylor", avatar: "/placeholder.svg" },
-];
-
 const HomePage = () => {
   const userData = useSelector((state: RootReduxState) => state.userSlice);
+  const { toast } = useToast();
+  const [seachFriend, { data }] = useLazySearchFriendQuery();
+  const [sendRequest] = useSendFriendRequestMutation();
+  const [acceptRequest] = useAcceptRequestMutation();
+  const [rejectRequest] = useRejectRequestMutation();
+  const { data: friends, refetch } = useGetFriendsQuery();
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState("");
   const getActivityIcon = (type: string) => {
     switch (type) {
       case "like":
@@ -72,6 +97,80 @@ const HomePage = () => {
         return <UserPlus className="h-4 w-4" />;
       default:
         return <Bell className="h-4 w-4" />;
+    }
+  };
+
+  const handleSearchFriend = (searchText: string = "") => {
+    seachFriend(searchText);
+  };
+  const debounced = useCallback(debounce(handleSearchFriend, 1000), []);
+  useEffectAfterMount(() => {
+    debounced(search);
+  }, [search, debounced]);
+
+  const getNameInital = (firstName: string, lastName: string) => {
+    const fullName = `${firstName ?? ""} ${lastName ?? ""}`;
+    const nameParts = fullName.trim().split(" ");
+
+    const initials = nameParts
+      .map((part) => part.charAt(0).toUpperCase())
+      .join("");
+
+    return initials;
+  };
+
+  const accept = (id: number) => {
+    acceptRequest(id).then((res) => {
+      const { error } = res;
+      const err = error as ErrorResponse;
+      if (err) {
+        toast({ title: err.data.message });
+      } else {
+        toast({ title: "Friend request accepted successfully!" });
+        refetch();
+      }
+    });
+  };
+  const reject = (id: number) => {
+    rejectRequest(id).then((res) => {
+      const { error } = res;
+      const err = error as ErrorResponse;
+      if (err) {
+        toast({ title: err.data.message });
+      } else {
+        toast({ title: "Friend request rejected successfully!" });
+        refetch();
+      }
+    });
+  };
+
+  const showButton = (status: string, id: number) => {
+    if (!status) {
+      return (
+        <div
+          className="bg-blue-600 rounded h-fit w-fit px-4 py-1 text-white hover:cursor-pointer"
+          onClick={() => {
+            sendRequest(id).then((res) => {
+              const { error } = res;
+              const err = error as ErrorResponse;
+              if (err) {
+                toast({ title: err.data.message });
+              } else {
+                debounced(search);
+                toast({ title: "Friend request sent successfully!" });
+              }
+            });
+          }}
+        >
+          Add
+        </div>
+      );
+    } else if (status === "pending") {
+      return (
+        <div className="bg-yellow-600 rounded h-fit w-fit px-4 py-1 text-white hover:cursor-pointer">
+          pending
+        </div>
+      );
     }
   };
   return (
@@ -118,36 +217,84 @@ const HomePage = () => {
             </ScrollArea>
           </CardContent>
         </Card>
-
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row justify-between">
             <CardTitle>Friends</CardTitle>
+            <Dialog open={isOpen} onOpenChange={setIsOpen}>
+              <DialogTrigger asChild>
+                <Plus className="hover:cursor-pointer" />
+              </DialogTrigger>
+              <DialogContent className="bg-white sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle></DialogTitle>
+                  <div className="mt-5">
+                    <Input
+                      placeholder="Search a friend...."
+                      value={search}
+                      onChange={(e) => {
+                        setSearch(e.target.value);
+                      }}
+                    />
+                    <ScrollArea className="h-[400px] mt-4">
+                      {Array.from(data ?? [])?.map((i) => {
+                        return (
+                          <div key={i.id} className="flex justify-between">
+                            <div className="flex items-center space-x-4 mb-4">
+                              <Avatar>
+                                <AvatarFallback>
+                                  {getNameInital(i.first_name, i.last_name)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="text-sm font-medium leading-none">
+                                  {i.first_name} {i.last_name}
+                                </p>
+                              </div>
+                            </div>
+                            {showButton(i.status as string, i.id)}
+                          </div>
+                        );
+                      })}
+                    </ScrollArea>
+                  </div>
+                </DialogHeader>
+              </DialogContent>
+            </Dialog>
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-[300px]">
-              {friends.map((friend) => (
+              {Array.from(friends?.requests ?? []).map((friend) => (
                 <div
                   key={friend.id}
                   className="flex items-center space-x-4 mb-4"
                 >
                   <Avatar>
-                    <AvatarImage src={friend.avatar} alt={friend.name} />
                     <AvatarFallback>
-                      {friend.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
+                      {getNameInital(
+                        friend.user.first_name,
+                        friend.user.last_name
+                      )}
                     </AvatarFallback>
                   </Avatar>
-                  <div>
+                  <div className="flex justify-between w-full">
                     <p className="text-sm font-medium leading-none">
-                      {friend.name}
+                      {friend.user.first_name} {friend.user.last_name}
                     </p>
+                    <div>
+                      {friend.status && friend.status == "pending" && (
+                        <div className="flex gap-2 items-center">
+                          <Check
+                            className="w-4 h-4 cursor-pointer"
+                            onClick={() => accept(friend.id)}
+                          />
+                          <X
+                            className="w-4 h-4 cursor-pointer"
+                            onClick={() => reject(friend.id)}
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <Separator orientation="vertical" className="h-6 mx-2" />
-                  <Button variant="outline" size="sm">
-                    Message
-                  </Button>
                 </div>
               ))}
             </ScrollArea>

@@ -3,6 +3,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -20,12 +21,12 @@ export class Friends extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  // Foreign key for user
-  @ManyToOne(() => User, (user) => user.id)
+  @ManyToOne(() => User, (user) => user.friendsAsUser) // Define inverse relation here
+  @JoinColumn({ name: "userId" }) // Make sure foreign key is correctly referenced
   user: User;
 
-  // Foreign key for the user who added the friend
-  @ManyToOne(() => User, (user) => user.id)
+  @ManyToOne(() => User, (user) => user.friendsAsAddedBy) // Added by relation
+  @JoinColumn({ name: "addedById" }) // Same for the added_by foreign key
   added_by: User;
 
   // Adding status with enum

@@ -7,6 +7,7 @@ const initialState: User = {
   last_name: "",
   email: "",
   last_login_at: "",
+  status: null,
 };
 
 const userSlice = createSlice({

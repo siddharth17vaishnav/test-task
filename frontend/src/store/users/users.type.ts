@@ -9,4 +9,5 @@ export interface User {
   last_name: string;
   email: string;
   last_login_at: string;
+  status?: string | null;
 }

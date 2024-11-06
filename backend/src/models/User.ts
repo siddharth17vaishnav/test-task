@@ -3,9 +3,11 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from "typeorm";
+import { Friends } from "./Friends";
 
 @Entity("users")
 export class User extends BaseEntity {
@@ -31,4 +33,10 @@ export class User extends BaseEntity {
 
   @UpdateDateColumn()
   updated_at: Date;
+
+  @OneToMany(() => Friends, (friend) => friend.user) // This is the important relation
+  friendsAsUser: Friends[];
+
+  @OneToMany(() => Friends, (friend) => friend.user) // This is the important relation
+  friendsAsAddedBy: Friends[];
 }
