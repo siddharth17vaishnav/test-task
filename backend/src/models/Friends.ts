@@ -21,15 +21,14 @@ export class Friends extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => User, (user) => user.friendsAsUser) // Define inverse relation here
-  @JoinColumn({ name: "userId" }) // Make sure foreign key is correctly referenced
+  @ManyToOne(() => User, (user) => user.friendsAsUser)
+  @JoinColumn({ name: "userId" })
   user: User;
 
-  @ManyToOne(() => User, (user) => user.friendsAsAddedBy) // Added by relation
-  @JoinColumn({ name: "addedById" }) // Same for the added_by foreign key
+  @ManyToOne(() => User, (user) => user.friendsAsAddedBy)
+  @JoinColumn({ name: "addedById" })
   added_by: User;
 
-  // Adding status with enum
   @Column({
     type: "enum",
     enum: FriendStatus,

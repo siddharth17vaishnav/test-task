@@ -8,4 +8,5 @@ export const API = {
   FRIENDS: "/api/friends/requests",
   ACCEPT_REQUEST: (id: number) => `/api/friends/${id}/accept`,
   REJECT_REQUEST: (id: number) => `/api/friends/${id}/reject`,
+  ACTIVITY: "/api/activity",
 };

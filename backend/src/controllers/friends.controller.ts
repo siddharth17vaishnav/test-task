@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { Activity } from "../models/Activity";
 import { Friends, FriendStatus } from "../models/Friends";
 import { User } from "../models/User";
 
@@ -6,6 +7,9 @@ export const sendFriendRequest = async (req: Request, res: Response) => {
   try {
     const userId = req.app.get("userId");
     const { id } = req.body;
+
+    const findUser = await User.findOne({ where: { id: userId } });
+    const findFriend = await User.findOne({ where: { id } });
 
     const existingRequest = await Friends.findOne({
       where: [
@@ -27,6 +31,18 @@ export const sendFriendRequest = async (req: Request, res: Response) => {
     });
 
     await newRequest.save();
+    if (findUser && findFriend) {
+      await Activity.insert({
+        user: findUser,
+        type: "send-friend-request",
+        description: `${findUser.first_name} sent friend request to ${findFriend?.first_name}`,
+      });
+      await Activity.insert({
+        user: findFriend,
+        type: "send-friend-request",
+        description: `${findFriend.first_name} sent you a friend request `,
+      });
+    }
 
     return res
       .status(201)
@@ -41,6 +57,9 @@ export const acceptRequest = async (req: Request, res: Response) => {
   try {
     const userId = req.app.get("userId");
     const { id } = req.params;
+
+    const findUser = await User.findOne({ where: { id: userId } });
+    const findFriend = await User.findOne({ where: { id: parseInt(id) } });
 
     const friendRequest = await Friends.findOne({
       where: {
@@ -58,6 +77,13 @@ export const acceptRequest = async (req: Request, res: Response) => {
 
     friendRequest.status = FriendStatus.ACCEPTED;
     await friendRequest.save();
+    if (findUser && findFriend) {
+      await Activity.insert({
+        user: findUser,
+        type: "friend-request-accepted",
+        description: `${findFriend.first_name} has accepted your friend request`,
+      });
+    }
 
     return res.status(200).send({ message: "Friend request accepted." });
   } catch (err) {
@@ -70,6 +96,8 @@ export const rejectRequest = async (req: Request, res: Response) => {
   try {
     const userId = req.app.get("userId");
     const { id } = req.params;
+    const findUser = await User.findOne({ where: { id: userId } });
+    const findFriend = await User.findOne({ where: { id: parseInt(id) } });
 
     const friendRequest = await Friends.findOne({
       where: {
@@ -86,7 +114,13 @@ export const rejectRequest = async (req: Request, res: Response) => {
     }
 
     await Friends.delete({ id: friendRequest.id });
-
+    if (findUser && findFriend) {
+      await Activity.insert({
+        user: findUser,
+        type: "friend-request-rejected",
+        description: `${findFriend.first_name} has rejected your friend request`,
+      });
+    }
     return res.status(200).send({ message: "Friend request rejected." });
   } catch (err) {
     console.error(err);
@@ -99,9 +133,9 @@ export const getRequests = async (req: Request, res: Response) => {
     const userId = req.app.get("userId");
     const requests = await Friends.createQueryBuilder("friends")
       .leftJoinAndSelect("friends.user", "user") // Join the `user` relation
-      .leftJoinAndSelect("friends.added_by", "added_by") 
+      .leftJoinAndSelect("friends.added_by", "added_by")
       .where("friends.userId = :userId", { userId })
-      .orWhere("friends.addedById = :userId", { userId }) 
+      .orWhere("friends.addedById = :userId", { userId })
       .getMany();
 
     return res.status(200).send({ requests });

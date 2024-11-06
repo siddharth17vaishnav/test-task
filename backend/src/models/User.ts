@@ -7,6 +7,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from "typeorm";
+import { Activity } from "./Activity";
 import { Friends } from "./Friends";
 
 @Entity("users")
@@ -34,9 +35,12 @@ export class User extends BaseEntity {
   @UpdateDateColumn()
   updated_at: Date;
 
-  @OneToMany(() => Friends, (friend) => friend.user) // This is the important relation
+  @OneToMany(() => Friends, (friend) => friend.user)
   friendsAsUser: Friends[];
 
-  @OneToMany(() => Friends, (friend) => friend.user) // This is the important relation
+  @OneToMany(() => Friends, (friend) => friend.user)
   friendsAsAddedBy: Friends[];
+
+  @OneToMany(() => Activity, (activity) => activity.user)
+  activities: Activity[];
 }

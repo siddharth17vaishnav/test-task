@@ -4,6 +4,7 @@ import express from "express";
 import { validationResult } from "express-validator";
 import jwt from "jsonwebtoken";
 import { omit } from "lodash";
+import { Activity } from "../models/Activity";
 import { User } from "../models/User";
 
 dotenv.config();
@@ -62,6 +63,10 @@ export const userLogin = async (
     }
 
     await User.update({ id: findUser.id }, { last_login_at: new Date() });
+    await Activity.insert({
+      user: findUser,
+      type: "login",
+    });
 
     if (!process.env.ACCESS_SECRET) {
       return sendErrorResponse(res, 500, "Missing JWT secret(s)");

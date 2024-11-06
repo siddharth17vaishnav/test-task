@@ -2,8 +2,10 @@ import cors from "cors";
 import * as dotenv from "dotenv";
 import express from "express";
 import { DataSource } from "typeorm";
+import { Activity } from "./models/Activity";
 import { Friends } from "./models/Friends";
 import { User } from "./models/User";
+import { activityRouter } from "./routes/activity.route";
 import { friendRouter } from "./routes/friends.route";
 import { userRouter } from "./routes/users.route";
 dotenv.config();
@@ -19,7 +21,7 @@ const main = async () => {
     password: process.env.DATABASE_PASSWORD,
     database: process.env.DATABASE_NAME,
     synchronize: true,
-    entities: [User, Friends],
+    entities: [User, Friends, Activity],
     ssl: true,
   });
 
@@ -29,8 +31,10 @@ const main = async () => {
       console.log(`DATABASE CONNECTED`);
       app.use(express.json());
       app.use(cors());
+
       app.use(userRouter);
       app.use(friendRouter);
+      app.use(activityRouter);
 
       app.listen(PORT, () => {
         console.log(`SERVER STARTED ON ${PORT}`);

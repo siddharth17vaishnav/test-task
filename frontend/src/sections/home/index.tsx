@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import useEffectAfterMount from "@/hooks";
 import { useToast } from "@/hooks/use-toast";
+import { useGetActivityQuery } from "@/store/activity/activity.api";
 import {
   useAcceptRequestMutation,
   useGetFriendsQuery,
@@ -30,57 +31,20 @@ import { debounce } from "lodash";
 import {
   Bell,
   Check,
-  X,
   MessageCircle,
   Plus,
   ThumbsUp,
   UserPlus,
+  X,
 } from "lucide-react";
 import { useCallback, useState } from "react";
 import { useSelector } from "react-redux";
-
-const activities = [
-  {
-    id: 1,
-    type: "like",
-    user: "Alice",
-    content: "liked your post",
-    time: "2023-06-01T09:00:00",
-  },
-  {
-    id: 2,
-    type: "comment",
-    user: "Bob",
-    content: "commented on your photo",
-    time: "2023-05-31T14:30:00",
-  },
-  {
-    id: 3,
-    type: "friend",
-    user: "Charlie",
-    content: "added you as a friend",
-    time: "2023-05-30T11:15:00",
-  },
-  {
-    id: 4,
-    type: "like",
-    user: "David",
-    content: "liked your comment",
-    time: "2023-05-29T16:45:00",
-  },
-  {
-    id: 5,
-    type: "comment",
-    user: "Eve",
-    content: "replied to your comment",
-    time: "2023-05-28T10:00:00",
-  },
-];
 
 const HomePage = () => {
   const userData = useSelector((state: RootReduxState) => state.userSlice);
   const { toast } = useToast();
   const [seachFriend, { data }] = useLazySearchFriendQuery();
+  const { data: activity } = useGetActivityQuery();
   const [sendRequest] = useSendFriendRequestMutation();
   const [acceptRequest] = useAcceptRequestMutation();
   const [rejectRequest] = useRejectRequestMutation();
@@ -193,21 +157,18 @@ const HomePage = () => {
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-[300px] pr-4">
-              {activities.map((activity) => (
-                <div
-                  key={activity.id}
-                  className="flex items-start space-x-4 mb-4"
-                >
+              {Array.from(activity ?? []).map((i) => (
+                <div key={i.id} className="flex items-start space-x-4 mb-4">
                   <div className="bg-primary-foreground p-2 rounded-full">
-                    {getActivityIcon(activity.type)}
+                    {getActivityIcon(i.type)}
                   </div>
                   <div className="space-y-1">
                     <p className="text-sm font-medium leading-none">
-                      {activity.user} {activity.content}
+                      {i.type === "login" ? "Logged In" : i.description}
                     </p>
                     <p className="text-sm text-muted-foreground">
                       {format(
-                        new Date(activity.time),
+                        new Date(i.created_at),
                         "MMM d, yyyy 'at' h:mm a"
                       )}
                     </p>
