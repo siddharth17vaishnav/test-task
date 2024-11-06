@@ -12,6 +12,12 @@ interface SignupPayload extends LoginPayload {
   first_name: string;
   last_name: string;
 }
+
+interface UpdatePasswordPayload {
+  oldPassword: string;
+  newPassword: string;
+}
+
 export const usersApi = createApi({
   reducerPath: "usersApi",
   baseQuery: fetchBaseQuery({
@@ -33,6 +39,16 @@ export const usersApi = createApi({
         body,
       }),
     }),
+    updatePassword: builder.mutation<
+      { message: string },
+      UpdatePasswordPayload
+    >({
+      query: (body) => ({
+        url: API.UPDATE_PASSWORD,
+        method: "PUT",
+        body,
+      }),
+    }),
     getUser: builder.query<{ data: User }, void>({
       query: (body) => ({
         url: API.ME,
@@ -42,5 +58,9 @@ export const usersApi = createApi({
   }),
 });
 
-export const { useLoginMutation, useSignupMutation, useGetUserQuery } =
-  usersApi;
+export const {
+  useLoginMutation,
+  useSignupMutation,
+  useGetUserQuery,
+  useUpdatePasswordMutation,
+} = usersApi;

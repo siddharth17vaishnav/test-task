@@ -16,7 +16,7 @@ const authenticateToken = (req: any, res: any, next: any) => {
       res.status(401).send({ message: "Unauthenticated user!" });
     }
   } catch (err) {
-    res.status(500).send({ message: "Unauthenticated user!" });
+    res.status(401).send({ message: "Unauthenticated user!" });
   }
 };
 
