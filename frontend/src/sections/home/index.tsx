@@ -164,7 +164,11 @@ const HomePage = () => {
                   </div>
                   <div className="space-y-1">
                     <p className="text-sm font-medium leading-none">
-                      {i.type === "login" ? "Logged In" : i.description}
+                      {i.type === "login"
+                        ? "Logged In"
+                        : i.type === "signup"
+                        ? "Signed Up"
+                        : i.description}
                     </p>
                     <p className="text-sm text-muted-foreground">
                       {format(
@@ -283,6 +287,7 @@ const HomePage = () => {
                   </div>
                 </div>
               ))}
+              {friends?.requests?.length === 0 && "No Friends found"}
             </ScrollArea>
           </CardContent>
         </Card>

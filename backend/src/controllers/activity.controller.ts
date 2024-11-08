@@ -6,7 +6,7 @@ export const getActivity = async (req: Request, res: Response) => {
     const userId = req.app.get("userId");
     const activities = await Activity.find({
       where: { user: { id: userId } },
-      order: { created_at: "DESC" }, // Order by created_at field in descending order
+      order: { created_at: "DESC" },
     });
     return res.status(200).json(activities);
   } catch (err) {

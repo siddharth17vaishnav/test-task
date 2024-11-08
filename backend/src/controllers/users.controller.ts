@@ -104,7 +104,7 @@ export const addUser = async (req: express.Request, res: express.Response) => {
           .insert()
           .into(User)
           .values({ first_name, last_name, email, password: hashedPassword })
-          .returning("first_name, last_name, email")
+          .returning("id,first_name, last_name, email")
           .execute();
         if (process.env.ACCESS_SECRET) {
           const generateAccessToken = jwt.sign(
@@ -112,7 +112,12 @@ export const addUser = async (req: express.Request, res: express.Response) => {
             process.env.ACCESS_SECRET,
             { expiresIn: "7d" }
           );
-
+          if (user) {
+            await Activity.insert({
+              user: user.raw[0],
+              type: "signup",
+            });
+          }
           res.status(200).send({
             user: user.raw[0],
             accessToken: generateAccessToken,
