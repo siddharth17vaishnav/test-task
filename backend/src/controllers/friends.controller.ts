@@ -61,7 +61,7 @@ export const acceptRequest = async (req: Request, res: Response) => {
 
     const friendRequest = await Friends.findOne({
       where: {
-        id: parseInt(id),
+        added_by: { id: parseInt(id) },
         user: userId,
         status: FriendStatus.PENDING,
       },
@@ -75,11 +75,12 @@ export const acceptRequest = async (req: Request, res: Response) => {
 
     friendRequest.status = FriendStatus.ACCEPTED;
     await friendRequest.save();
+
     if (findUser && findFriend) {
       await Activity.insert({
-        user: findUser,
+        user: findFriend,
         type: "friend-request-accepted",
-        description: `${findFriend.first_name} has accepted your friend request`,
+        description: `${findUser.first_name} has accepted your friend request`,
       });
     }
 
@@ -133,7 +134,6 @@ export const getRequests = async (req: Request, res: Response) => {
       .leftJoinAndSelect("friends.user", "user") // Join the `user` relation
       .leftJoinAndSelect("friends.added_by", "added_by")
       .where("friends.userId = :userId", { userId })
-      .andWhere("friends.userId != :userId", { userId })
       .orWhere("friends.addedById = :userId", { userId })
       .getMany();
 
@@ -158,26 +158,34 @@ export const findFriends = async (req: Request, res: Response) => {
       .where("user.first_name ILIKE :search OR user.last_name ILIKE :search", {
         search: `%${search}%`,
       })
-      .andWhere("friend.status = :status", { status: FriendStatus.ACCEPTED })
       .andWhere("user.id != :userId", { userId })
       .getMany();
 
-    const transformedUsers = users.map((user) => {
-      const friendStatus = user.friendsAsUser.find(
-        (friend) => friend.added_by?.id === userId
-      )?.status;
+    const transformedUsers = await Promise.all(
+      users.map(async (user) => {
+        const requests = await Friends.createQueryBuilder("friends")
+          .leftJoinAndSelect("friends.user", "user")
+          .leftJoinAndSelect("friends.added_by", "added_by")
+          .where("friends.userId = :userId", { userId: userId })
+          .orWhere("friends.addedById = :userId", { userId: userId })
+          .getMany();
+        const status = requests.find(
+          (i) => i.added_by.id === user.id || i.user.id === user.id
+        )?.status;
 
-      return {
-        id: user.id,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        email: user.email,
-        last_login_at: user.last_login_at,
-        created_at: user.created_at,
-        updated_at: user.updated_at,
-        status: friendStatus || null,
-      };
-    });
+        return {
+          id: user.id,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          email: user.email,
+          last_login_at: user.last_login_at,
+          created_at: user.created_at,
+          updated_at: user.updated_at,
+          status: status || null,
+          requests,
+        };
+      })
+    );
 
     return res.status(200).json(transformedUsers);
   } catch (err) {

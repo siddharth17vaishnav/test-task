@@ -4,8 +4,11 @@ import { Activity } from "../models/Activity";
 export const getActivity = async (req: Request, res: Response) => {
   try {
     const userId = req.app.get("userId");
-    const acitivity = await Activity.findBy({ user: { id: userId } });
-    return res.status(200).json(acitivity);
+    const activities = await Activity.find({
+      where: { user: { id: userId } },
+      order: { created_at: "DESC" }, // Order by created_at field in descending order
+    });
+    return res.status(200).json(activities);
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }

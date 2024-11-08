@@ -180,7 +180,7 @@ const HomePage = () => {
         </Card>
         <Card>
           <CardHeader className="flex flex-row justify-between">
-            <CardTitle>Friends</CardTitle>
+            <CardTitle>Friends Requests</CardTitle>
             <Dialog open={isOpen} onOpenChange={setIsOpen}>
               <DialogTrigger asChild>
                 <Plus className="hover:cursor-pointer" />
@@ -232,14 +232,23 @@ const HomePage = () => {
                   <Avatar>
                     <AvatarFallback>
                       {getNameInital(
-                        friend.user.first_name,
-                        friend.user.last_name
+                        friend.user.id === userData.id
+                          ? friend.added_by.first_name
+                          : friend.user.first_name,
+                        friend.user.id === userData.id
+                          ? friend.added_by.last_name
+                          : friend.user.last_name
                       )}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex justify-between w-full">
                     <p className="text-sm font-medium leading-none items-center">
-                      {friend.user.first_name} {friend.user.last_name}
+                      {friend.user.id === userData.id
+                        ? friend.added_by.first_name
+                        : friend.user.first_name}{" "}
+                      {friend.user.id === userData.id
+                        ? friend.added_by.last_name
+                        : friend.user.last_name}
                     </p>
                     <div>
                       {friend.status && friend.status == "pending" ? (
@@ -247,11 +256,23 @@ const HomePage = () => {
                           <div className="flex gap-2 items-center">
                             <Check
                               className="w-4 h-4 cursor-pointer"
-                              onClick={() => accept(friend.id)}
+                              onClick={() =>
+                                accept(
+                                  friend.user.id === userData.id
+                                    ? friend.added_by.id
+                                    : friend.user.id
+                                )
+                              }
                             />
                             <X
                               className="w-4 h-4 cursor-pointer"
-                              onClick={() => reject(friend.id)}
+                              onClick={() =>
+                                reject(
+                                  friend.user.id === userData.id
+                                    ? friend.added_by.id
+                                    : friend.user.id
+                                )
+                              }
                             />
                           </div>
                         ) : (
