@@ -180,7 +180,7 @@ const HomePage = () => {
         </Card>
         <Card>
           <CardHeader className="flex flex-row justify-between">
-            <CardTitle>Friends Requests</CardTitle>
+            <CardTitle>Friends</CardTitle>
             <Dialog open={isOpen} onOpenChange={setIsOpen}>
               <DialogTrigger asChild>
                 <Plus className="hover:cursor-pointer" />
