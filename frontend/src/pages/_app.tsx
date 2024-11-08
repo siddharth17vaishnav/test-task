@@ -1,4 +1,5 @@
 import { Toaster } from "@/components/ui/toaster";
+import { Toaster as SonnerToaster } from "sonner";
 import { ThemeLayout } from "@/layouts/ThemeLayout";
 import store from "@/store";
 import "@/styles/globals.css";
@@ -15,6 +16,7 @@ export default function App({ Component, pageProps }: AppProps) {
         disableTransitionOnChange
       >
         <Toaster />
+        <SonnerToaster />
         <Component {...pageProps} />
       </ThemeLayout>
     </Provider>

@@ -238,22 +238,26 @@ const HomePage = () => {
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex justify-between w-full">
-                    <p className="text-sm font-medium leading-none">
+                    <p className="text-sm font-medium leading-none items-center">
                       {friend.user.first_name} {friend.user.last_name}
                     </p>
                     <div>
-                      {friend.status && friend.status == "pending" && (
-                        <div className="flex gap-2 items-center">
-                          <Check
-                            className="w-4 h-4 cursor-pointer"
-                            onClick={() => accept(friend.id)}
-                          />
-                          <X
-                            className="w-4 h-4 cursor-pointer"
-                            onClick={() => reject(friend.id)}
-                          />
-                        </div>
-                      )}
+                      {friend.status && friend.status == "pending" ? (
+                        userData.id !== friend.added_by.id ? (
+                          <div className="flex gap-2 items-center">
+                            <Check
+                              className="w-4 h-4 cursor-pointer"
+                              onClick={() => accept(friend.id)}
+                            />
+                            <X
+                              className="w-4 h-4 cursor-pointer"
+                              onClick={() => reject(friend.id)}
+                            />
+                          </div>
+                        ) : (
+                          <div>Pending</div>
+                        )
+                      ) : null}
                     </div>
                   </div>
                 </div>

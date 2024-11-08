@@ -8,6 +8,7 @@ import { User } from "./models/User";
 import { activityRouter } from "./routes/activity.route";
 import { friendRouter } from "./routes/friends.route";
 import { userRouter } from "./routes/users.route";
+import { rateLimiter } from "./middleware/rateLimiter";
 dotenv.config();
 const app = express();
 const PORT = 5000;
@@ -31,6 +32,8 @@ const main = async () => {
       console.log(`DATABASE CONNECTED`);
       app.use(express.json());
       app.use(cors());
+
+      app.use(rateLimiter);
 
       app.use(userRouter);
       app.use(friendRouter);

@@ -8,6 +8,7 @@ interface FriendsResponse {
     id: number;
     status: string;
     user: User;
+    added_by: User;
   }[];
 }
 

@@ -11,14 +11,12 @@ export const sendFriendRequest = async (req: Request, res: Response) => {
     const findUser = await User.findOne({ where: { id: userId } });
     const findFriend = await User.findOne({ where: { id } });
 
-    const existingRequest = await Friends.findOne({
-      where: [
-        { added_by: userId, user: id },
-        { added_by: id, user: userId },
-      ],
-    });
+    const existingRequest = await Friends.query(
+      'SELECT * FROM friends WHERE friends."addedById" = $1 AND friends."userId"=$2 LIMIT 1',
+      [userId, id]
+    );
 
-    if (existingRequest) {
+    if (existingRequest?.[0]) {
       return res
         .status(400)
         .send({ message: "Friend request already exists." });
@@ -40,7 +38,7 @@ export const sendFriendRequest = async (req: Request, res: Response) => {
       await Activity.insert({
         user: findFriend,
         type: "send-friend-request",
-        description: `${findFriend.first_name} sent you a friend request `,
+        description: `${findUser.first_name} sent you a friend request `,
       });
     }
 
@@ -135,6 +133,7 @@ export const getRequests = async (req: Request, res: Response) => {
       .leftJoinAndSelect("friends.user", "user") // Join the `user` relation
       .leftJoinAndSelect("friends.added_by", "added_by")
       .where("friends.userId = :userId", { userId })
+      .andWhere("friends.userId != :userId", { userId })
       .orWhere("friends.addedById = :userId", { userId })
       .getMany();
 
@@ -159,20 +158,15 @@ export const findFriends = async (req: Request, res: Response) => {
       .where("user.first_name ILIKE :search OR user.last_name ILIKE :search", {
         search: `%${search}%`,
       })
-      .andWhere("friend.status = :status", { status: FriendStatus.ACCEPTED }) // Optional: filter by accepted status
-      .select([
-        "user.id",
-        "user.first_name",
-        "user.last_name",
-        "user.email",
-        "user.last_login_at",
-        "user.created_at",
-        "user.updated_at",
-        "friend.status",
-      ])
+      .andWhere("friend.status = :status", { status: FriendStatus.ACCEPTED })
+      .andWhere("user.id != :userId", { userId })
       .getMany();
 
     const transformedUsers = users.map((user) => {
+      const friendStatus = user.friendsAsUser.find(
+        (friend) => friend.added_by?.id === userId
+      )?.status;
+
       return {
         id: user.id,
         first_name: user.first_name,
@@ -181,16 +175,11 @@ export const findFriends = async (req: Request, res: Response) => {
         last_login_at: user.last_login_at,
         created_at: user.created_at,
         updated_at: user.updated_at,
-        status:
-          user?.friendsAsUser?.length > 0
-            ? user?.friendsAsUser?.[0]?.status
-            : null,
+        status: friendStatus || null,
       };
     });
 
-    return res
-      .status(200)
-      .json(transformedUsers.filter((i) => i.id !== userId));
+    return res.status(200).json(transformedUsers);
   } catch (err) {
     console.error(err);
     return res
